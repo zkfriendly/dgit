@@ -2,7 +2,6 @@
 artifacts/
 cache/
 out/
-broadcast/
 
 # Solidity dependencies
 node_modules/
