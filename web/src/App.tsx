@@ -19,7 +19,13 @@ type TerminalLine =
       text: string
     }
 
-type DesktopWindow = 'terminal' | 'quickStart' | 'poster' | 'browser' | 'reliability'
+type DesktopWindow =
+  | 'terminal'
+  | 'quickStart'
+  | 'pushPull'
+  | 'poster'
+  | 'browser'
+  | 'reliability'
 
 type Point = {
   x: number
@@ -98,6 +104,24 @@ const quickStartCommands = [
   },
 ]
 
+const pushPullCommands = [
+  {
+    id: 'pushpull-remote',
+    label: '1. Add the dgit remote',
+    command: 'git remote add origin http://127.0.0.1:8090/myrepo@git.eth',
+  },
+  {
+    id: 'pushpull-push',
+    label: '2. Push your branch',
+    command: 'git push origin HEAD:master',
+  },
+  {
+    id: 'pushpull-clone',
+    label: '3. Clone the repo',
+    command: 'git clone http://127.0.0.1:8090/myrepo@git.eth',
+  },
+]
+
 const fullDemoLines = demoSteps.flatMap<TerminalLine>((step) => [
   {
     kind: 'command',
@@ -139,6 +163,7 @@ function TerminalPrompt({
 function App() {
   const reduceMotion = prefersReducedMotion()
   const [isQuickStartOpen, setIsQuickStartOpen] = useState(false)
+  const [isPushPullOpen, setIsPushPullOpen] = useState(false)
   const [isPosterOpen, setIsPosterOpen] = useState(false)
   const [isBrowserOpen, setIsBrowserOpen] = useState(false)
   const [isReliabilityOpen, setIsReliabilityOpen] = useState(false)
@@ -159,6 +184,7 @@ function App() {
   const desktopStageRef = useRef<HTMLDivElement>(null)
   const terminalBodyRef = useRef<HTMLDivElement>(null)
   const quickStartClickRef = useRef(0)
+  const pushPullClickRef = useRef(0)
   const posterClickRef = useRef(0)
   const browserClickRef = useRef(0)
   const reliabilityClickRef = useRef(0)
@@ -173,7 +199,9 @@ function App() {
   const activeStep = demoSteps[commandIndex]
   const activeCommand = activeStep?.command ?? ''
   const typedCommand = activeCommand.slice(0, characterIndex)
-  const isTextFileActive = isQuickStartOpen && activeWindow === 'quickStart'
+  const isTextFileActive =
+    (isQuickStartOpen && activeWindow === 'quickStart') ||
+    (isPushPullOpen && activeWindow === 'pushPull')
   const isPosterActive = isPosterOpen && activeWindow === 'poster'
   const isBrowserActive =
     (isBrowserOpen && activeWindow === 'browser') ||
@@ -207,6 +235,11 @@ function App() {
     setActiveWindow('quickStart')
   }
 
+  const openPushPull = () => {
+    setIsPushPullOpen(true)
+    setActiveWindow('pushPull')
+  }
+
   const openPoster = () => {
     setIsPosterOpen(true)
     setActiveWindow('poster')
@@ -232,6 +265,18 @@ function App() {
     }
 
     quickStartClickRef.current = clickedAt
+  }
+
+  const handlePushPullPointerUp = () => {
+    const clickedAt = Date.now()
+
+    if (clickedAt - pushPullClickRef.current < 450) {
+      openPushPull()
+      pushPullClickRef.current = 0
+      return
+    }
+
+    pushPullClickRef.current = clickedAt
   }
 
   const handlePosterPointerUp = () => {
@@ -460,6 +505,21 @@ function App() {
           </button>
 
           <button
+            className="desktop-file-icon desktop-pushpull-icon"
+            onDoubleClick={openPushPull}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter') {
+                openPushPull()
+              }
+            }}
+            onPointerUp={handlePushPullPointerUp}
+            type="button"
+          >
+            <span />
+            <p>push&pull</p>
+          </button>
+
+          <button
             className="desktop-image-icon"
             onDoubleClick={openPoster}
             onKeyDown={(event) => {
@@ -606,6 +666,68 @@ function App() {
                   PRIVATE_KEY is the wallet private key used to claim new *.git.eth repo names
                   on ENS.
                 </p>
+              </div>
+            </article>
+          )}
+
+          {isPushPullOpen && (
+            <article
+              className={`quick-start-window push-pull-window ${
+                windowPositions.pushPull ? 'is-dragged' : ''
+              }`}
+              aria-label="push and pull text file"
+              data-window
+              onPointerDown={() => setActiveWindow('pushPull')}
+              style={{
+                ...(windowPositions.pushPull
+                  ? {
+                      left: windowPositions.pushPull.x,
+                      right: 'auto',
+                      top: windowPositions.pushPull.y,
+                      bottom: 'auto',
+                    }
+                  : {}),
+                zIndex: activeWindow === 'pushPull' ? 5 : 3,
+              }}
+            >
+              <div
+                className="quick-start-titlebar window-drag-handle"
+                onPointerDown={(event) => startDrag('pushPull', event)}
+                onPointerMove={dragWindow}
+                onPointerUp={stopDrag}
+                onPointerCancel={stopDrag}
+              >
+                <div className="window-controls">
+                  <button
+                    aria-label="Close push and pull"
+                    onClick={() => setIsPushPullOpen(false)}
+                    onPointerDown={(event) => event.stopPropagation()}
+                    type="button"
+                  />
+                  <span />
+                  <span />
+                </div>
+                <strong>push&pull.txt</strong>
+              </div>
+              <div className="quick-start-content">
+                {pushPullCommands.map((item) => (
+                  <section className="quick-start-step" key={item.id}>
+                    <p>{item.label}</p>
+                    <div className="command-snippet">
+                      <pre>
+                        <code>$ {item.command}</code>
+                      </pre>
+                      <button
+                        aria-label={`Copy ${item.label} command`}
+                        className="copy-command-button"
+                        onClick={() => copyCommand(item.id, item.command)}
+                        type="button"
+                      >
+                        {copiedCommand === item.id ? 'copied' : 'copy'}
+                      </button>
+                    </div>
+                  </section>
+                ))}
               </div>
             </article>
           )}

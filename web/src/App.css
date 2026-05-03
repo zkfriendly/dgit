@@ -118,16 +118,20 @@
   top: clamp(20px, 3vw, 34px);
 }
 
+.desktop-pushpull-icon {
+  top: clamp(104px, 10vw, 126px);
+}
+
 .desktop-image-icon {
-  top: clamp(112px, 11vw, 142px);
+  top: clamp(188px, 18vw, 218px);
 }
 
 .desktop-browser-icon {
-  top: clamp(190px, 18vw, 230px);
+  top: clamp(272px, 25vw, 310px);
 }
 
 .desktop-reliability-icon {
-  top: clamp(290px, 27vw, 340px);
+  top: clamp(372px, 34vw, 420px);
 }
 
 .desktop-file-icon:focus-visible,
@@ -283,6 +287,11 @@
   box-shadow: 0 28px 90px rgba(0, 0, 0, 0.32);
   animation: quick-start-open 220ms ease-out both;
   backdrop-filter: blur(24px) saturate(130%);
+}
+
+.push-pull-window {
+  right: clamp(34px, 8vw, 96px);
+  bottom: clamp(104px, 14vw, 156px);
 }
 
 .poster-window {
@@ -815,18 +824,23 @@
     right: 22px;
   }
 
-  .desktop-image-icon {
+  .desktop-pushpull-icon {
     top: 104px;
     right: 22px;
   }
 
+  .desktop-image-icon {
+    top: 186px;
+    right: 22px;
+  }
+
   .desktop-browser-icon {
-    top: 178px;
+    top: 268px;
     right: 22px;
   }
 
   .desktop-reliability-icon {
-    top: 270px;
+    top: 360px;
     right: 22px;
   }
 
@@ -896,6 +910,14 @@
   }
 
   .quick-start-window {
+    top: 118px;
+    right: 18px;
+    bottom: auto;
+    left: 18px;
+    width: auto;
+  }
+
+  .push-pull-window {
     top: 118px;
     right: 18px;
     bottom: auto;
