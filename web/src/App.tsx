@@ -35,7 +35,7 @@ const demoSteps: DemoStep[] = [
   {
     cwd: 'myrepo',
     command: 'git init',
-    output: ['Initialized empty Git repository in /Users/thefazi/Desktop/myrepo/.git/'],
+    output: ['Initialized empty Git repository in /Users/ponyo/Desktop/myrepo/.git/'],
   },
   {
     cwd: 'myrepo',
@@ -116,6 +116,7 @@ function TerminalPrompt({
 function App() {
   const reduceMotion = prefersReducedMotion()
   const [isQuickStartOpen, setIsQuickStartOpen] = useState(false)
+  const [now, setNow] = useState(() => new Date())
   const [activeWindow, setActiveWindow] = useState<DesktopWindow>('terminal')
   const [windowPositions, setWindowPositions] = useState<Partial<Record<DesktopWindow, Point>>>(
     {},
@@ -130,6 +131,7 @@ function App() {
   const [showRepoFolder, setShowRepoFolder] = useState(reduceMotion)
   const desktopStageRef = useRef<HTMLDivElement>(null)
   const terminalBodyRef = useRef<HTMLDivElement>(null)
+  const quickStartClickRef = useRef(0)
   const dragRef = useRef<{
     id: DesktopWindow
     offsetX: number
@@ -146,10 +148,31 @@ function App() {
   const menuItems = isTextFileActive
     ? ['File', 'Edit', 'Format', 'View', 'Window', 'Help']
     : ['Shell', 'Edit', 'View', 'Window', 'Help']
+  const dateLabel = now.toLocaleDateString(undefined, {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+  })
+  const timeLabel = now.toLocaleTimeString(undefined, {
+    hour: '2-digit',
+    minute: '2-digit',
+  })
 
   const openQuickStart = () => {
     setIsQuickStartOpen(true)
     setActiveWindow('quickStart')
+  }
+
+  const handleQuickStartPointerUp = () => {
+    const clickedAt = Date.now()
+
+    if (clickedAt - quickStartClickRef.current < 450) {
+      openQuickStart()
+      quickStartClickRef.current = 0
+      return
+    }
+
+    quickStartClickRef.current = clickedAt
   }
 
   const startDrag = (id: DesktopWindow, event: ReactPointerEvent<HTMLElement>) => {
@@ -212,6 +235,14 @@ function App() {
   const stopDrag = () => {
     dragRef.current = null
   }
+
+  useEffect(() => {
+    const interval = window.setInterval(() => {
+      setNow(new Date())
+    }, 1000)
+
+    return () => window.clearInterval(interval)
+  }, [])
 
   useEffect(() => {
     if (commandIndex >= demoSteps.length) {
@@ -283,8 +314,8 @@ function App() {
           <div className="desktop-status">
             <span>22°C</span>
             <span>41%</span>
-            <span>Sun May 3</span>
-            <span>13:04</span>
+            <span>{dateLabel}</span>
+            <span>{timeLabel}</span>
           </div>
         </div>
 
@@ -316,6 +347,7 @@ function App() {
                 openQuickStart()
               }
             }}
+            onPointerUp={handleQuickStartPointerUp}
             type="button"
           >
             <span />
@@ -360,32 +392,24 @@ function App() {
                 </div>
                 <strong>quick start.txt</strong>
               </div>
-              <pre>{`dgit quick start
+              <pre>{`0. Clone the git repo
+   $ git clone git@github.com:zkfriendly/dgit.git
 
 1. Install Docker
    https://docs.docker.com/get-docker/
 
-2. Run the published image
-   docker run --rm \\
-     -p 8090:8090 \\
-     -v dgit-data:/data \\
-     -e PRIVATE_KEY="$PRIVATE_KEY" \\
-     zkfr/dgit:latest
+2. Build the image
+   $ docker build -t dgit .
 
-3. Or build locally
-   docker build -t dgit .
-   docker run --rm \\
-     -p 8090:8090 \\
-     -v dgit-data:/data \\
-     -e PRIVATE_KEY="$PRIVATE_KEY" \\
-     dgit
+3. Run dgit
+   $ docker run --rm \\
+       -p 8090:8090 \\
+       -v dgit-data:/data \\
+       -e PRIVATE_KEY="$PRIVATE_KEY" \\
+       dgit
 
-4. Push a repo
-   git remote add origin http://127.0.0.1:8090/myrepo@git.eth
-   git push origin HEAD:master
-
-5. Clone it later
-   git clone http://127.0.0.1:8090/myrepo@git.eth
+PRIVATE_KEY is the wallet private key used to claim new *.git.eth
+repo names on ENS.
 `}</pre>
             </article>
           )}
