@@ -1,0 +1,16 @@
+.git
+.env
+__pycache__/
+*.pyc
+
+axl/private.pem
+axl/.git/
+axl/.pytest_cache/
+axl/**/__pycache__/
+
+node/.zig-cache/
+node/server/
+
+contracts/cache/
+contracts/out/
+contracts/lib/

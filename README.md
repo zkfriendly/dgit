@@ -14,6 +14,45 @@ Then follow the readme to run the git server node
 
 # ENS + AXL bridge
 
+## Docker
+
+Build the runtime image:
+
+```sh
+docker build -t dgit .
+```
+
+Run the full stack with one container:
+
+```sh
+docker run --rm \
+  -p 8090:8090 \
+  -v dgit-data:/data \
+  -e PRIVATE_KEY="$PRIVATE_KEY" \
+  dgit
+```
+
+`PRIVATE_KEY` is the only required value for claiming new `*.git.eth` names.
+The image defaults Sepolia RPC, registrar, AXL peers, Haxy, and bridge endpoints.
+Set `DGIT_PUBLIC_ENDPOINT` if other machines should use a hostname different
+from `127.0.0.1:8090`.
+
+Push and pull through the bridge:
+
+```sh
+git remote add origin http://127.0.0.1:8090/myrepo@git.eth
+git push origin HEAD:master
+git clone http://127.0.0.1:8090/myrepo@git.eth
+```
+
+Run the Docker smoke test with:
+
+```sh
+PRIVATE_KEY="$PRIVATE_KEY" scripts/docker_smoke_test.sh
+```
+
+## Manual
+
 With Haxy and the AXL node running, start the bridge:
 
 ```sh
