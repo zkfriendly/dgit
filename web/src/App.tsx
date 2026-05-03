@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { type PointerEvent as ReactPointerEvent, useEffect, useRef, useState } from 'react'
 import './App.css'
 
 type DemoStep = {
@@ -18,6 +18,13 @@ type TerminalLine =
       kind: 'output'
       text: string
     }
+
+type DesktopWindow = 'terminal' | 'quickStart'
+
+type Point = {
+  x: number
+  y: number
+}
 
 const demoSteps: DemoStep[] = [
   {
@@ -108,6 +115,11 @@ function TerminalPrompt({
 
 function App() {
   const reduceMotion = prefersReducedMotion()
+  const [isQuickStartOpen, setIsQuickStartOpen] = useState(false)
+  const [activeWindow, setActiveWindow] = useState<DesktopWindow>('terminal')
+  const [windowPositions, setWindowPositions] = useState<Partial<Record<DesktopWindow, Point>>>(
+    {},
+  )
   const [commandIndex, setCommandIndex] = useState(
     reduceMotion ? demoSteps.length : 0,
   )
@@ -116,11 +128,85 @@ function App() {
     reduceMotion ? fullDemoLines : [],
   )
   const [showRepoFolder, setShowRepoFolder] = useState(reduceMotion)
+  const desktopStageRef = useRef<HTMLDivElement>(null)
   const terminalBodyRef = useRef<HTMLDivElement>(null)
+  const dragRef = useRef<{
+    id: DesktopWindow
+    offsetX: number
+    offsetY: number
+    width: number
+    height: number
+  } | null>(null)
 
   const activeStep = demoSteps[commandIndex]
   const activeCommand = activeStep?.command ?? ''
   const typedCommand = activeCommand.slice(0, characterIndex)
+
+  const openQuickStart = () => {
+    setIsQuickStartOpen(true)
+    setActiveWindow('quickStart')
+  }
+
+  const startDrag = (id: DesktopWindow, event: ReactPointerEvent<HTMLElement>) => {
+    if (event.button !== 0) {
+      return
+    }
+
+    const stage = desktopStageRef.current
+    if (!stage) {
+      return
+    }
+
+    const windowElement = event.currentTarget.closest<HTMLElement>('[data-window]')
+    if (!windowElement) {
+      return
+    }
+
+    const stageRect = stage.getBoundingClientRect()
+    const windowRect = windowElement.getBoundingClientRect()
+
+    setActiveWindow(id)
+    dragRef.current = {
+      id,
+      offsetX: event.clientX - windowRect.left,
+      offsetY: event.clientY - windowRect.top,
+      width: windowRect.width,
+      height: windowRect.height,
+    }
+
+    setWindowPositions((positions) => ({
+      ...positions,
+      [id]: {
+        x: windowRect.left - stageRect.left,
+        y: windowRect.top - stageRect.top,
+      },
+    }))
+
+    event.currentTarget.setPointerCapture(event.pointerId)
+  }
+
+  const dragWindow = (event: ReactPointerEvent<HTMLElement>) => {
+    const drag = dragRef.current
+    const stage = desktopStageRef.current
+    if (!drag || !stage) {
+      return
+    }
+
+    const stageRect = stage.getBoundingClientRect()
+    const maxX = Math.max(0, stageRect.width - drag.width)
+    const maxY = Math.max(0, stageRect.height - drag.height)
+    const x = Math.min(Math.max(0, event.clientX - stageRect.left - drag.offsetX), maxX)
+    const y = Math.min(Math.max(0, event.clientY - stageRect.top - drag.offsetY), maxY)
+
+    setWindowPositions((positions) => ({
+      ...positions,
+      [drag.id]: { x, y },
+    }))
+  }
+
+  const stopDrag = () => {
+    dragRef.current = null
+  }
 
   useEffect(() => {
     if (commandIndex >= demoSteps.length) {
@@ -200,7 +286,11 @@ function App() {
           </div>
         </div>
 
-        <div className="desktop-stage" aria-label="Animated dgit desktop demo">
+        <div
+          className="desktop-stage"
+          aria-label="Animated dgit desktop demo"
+          ref={desktopStageRef}
+        >
           <div className="desktop-folders">
             <div className="folder-icon">
               <span />
@@ -210,14 +300,113 @@ function App() {
               <span />
               <p>notes</p>
             </div>
+            <button
+              className="desktop-file-icon"
+              onDoubleClick={openQuickStart}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter') {
+                  openQuickStart()
+                }
+              }}
+              type="button"
+            >
+              <span />
+              <p>quick start</p>
+            </button>
             <div className={`folder-icon repo-folder ${showRepoFolder ? 'visible' : ''}`}>
               <span />
               <p>myrepo</p>
             </div>
           </div>
 
-          <div className="demo-terminal" aria-label="Terminal demo">
-            <div className="terminal-header">
+          {isQuickStartOpen && (
+            <article
+              className={`quick-start-window ${
+                windowPositions.quickStart ? 'is-dragged' : ''
+              }`}
+              aria-label="quick start text file"
+              data-window
+              style={{
+                ...(windowPositions.quickStart
+                  ? {
+                      left: windowPositions.quickStart.x,
+                      right: 'auto',
+                      top: windowPositions.quickStart.y,
+                    }
+                  : {}),
+                zIndex: activeWindow === 'quickStart' ? 5 : 3,
+              }}
+            >
+              <div
+                className="quick-start-titlebar window-drag-handle"
+                onPointerDown={(event) => startDrag('quickStart', event)}
+                onPointerMove={dragWindow}
+                onPointerUp={stopDrag}
+                onPointerCancel={stopDrag}
+              >
+                <div className="window-controls">
+                  <button
+                    aria-label="Close quick start"
+                    onClick={() => setIsQuickStartOpen(false)}
+                    onPointerDown={(event) => event.stopPropagation()}
+                    type="button"
+                  />
+                  <span />
+                  <span />
+                </div>
+                <strong>quick start.txt</strong>
+              </div>
+              <pre>{`dgit quick start
+
+1. Install Docker
+   https://docs.docker.com/get-docker/
+
+2. Run the published image
+   docker run --rm \\
+     -p 8090:8090 \\
+     -v dgit-data:/data \\
+     -e PRIVATE_KEY="$PRIVATE_KEY" \\
+     zkfr/dgit:latest
+
+3. Or build locally
+   docker build -t dgit .
+   docker run --rm \\
+     -p 8090:8090 \\
+     -v dgit-data:/data \\
+     -e PRIVATE_KEY="$PRIVATE_KEY" \\
+     dgit
+
+4. Push a repo
+   git remote add origin http://127.0.0.1:8090/myrepo@git.eth
+   git push origin HEAD:master
+
+5. Clone it later
+   git clone http://127.0.0.1:8090/myrepo@git.eth
+`}</pre>
+            </article>
+          )}
+
+          <div
+            className={`demo-terminal ${windowPositions.terminal ? 'is-dragged' : ''}`}
+            aria-label="Terminal demo"
+            data-window
+            style={{
+              ...(windowPositions.terminal
+                ? {
+                    left: windowPositions.terminal.x,
+                    top: windowPositions.terminal.y,
+                  }
+                : {}),
+              zIndex: activeWindow === 'terminal' ? 5 : 2,
+            }}
+          >
+            <div
+              className="terminal-header window-drag-handle"
+              onPointerDown={(event) => startDrag('terminal', event)}
+              onPointerMove={dragWindow}
+              onPointerUp={stopDrag}
+              onPointerCancel={stopDrag}
+            >
               <span />
               <span />
               <span />
