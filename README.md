@@ -16,7 +16,22 @@ Then follow the readme to run the git server node
 
 ## Docker
 
-Build the runtime image:
+Install Docker first: https://docs.docker.com/get-docker/
+
+Quick start from Docker Hub:
+
+```sh
+docker run --rm \
+  -p 8090:8090 \
+  -v dgit-data:/data \
+  -e PRIVATE_KEY="$PRIVATE_KEY" \
+  zkfr/dgit:latest
+```
+
+Published image: `zkfr/dgit:latest`
+Digest: `sha256:00018a75b9e68ddabf5b5c37fb3a0a93c71cd08fecd019a1f6eb1820d0d768ec`
+
+OR build the runtime image:
 
 ```sh
 docker build -t dgit .
