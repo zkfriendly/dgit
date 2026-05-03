@@ -15,6 +15,18 @@ npm run dev
 npm run build
 ```
 
+## Deploy to Render
+
+This repo includes a Render blueprint at `../render.yaml` for deploying the
+homepage as a static site.
+
+Manual Render settings:
+
+- Root directory: `web`
+- Runtime: `Static`
+- Build command: `npm ci && npm run build`
+- Publish directory: `dist`
+
 ## Docker
 
 ```sh
