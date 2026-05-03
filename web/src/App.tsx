@@ -19,7 +19,7 @@ type TerminalLine =
       text: string
     }
 
-type DesktopWindow = 'terminal' | 'quickStart'
+type DesktopWindow = 'terminal' | 'quickStart' | 'poster' | 'browser' | 'reliability'
 
 type Point = {
   x: number
@@ -75,6 +75,29 @@ const demoSteps: DemoStep[] = [
   },
 ]
 
+const quickStartCommands = [
+  {
+    id: 'clone',
+    label: '0. Clone the git repo',
+    command: 'git clone git@github.com:zkfriendly/dgit.git',
+  },
+  {
+    id: 'build',
+    label: '2. Build the image',
+    command: 'docker build -t dgit .',
+  },
+  {
+    id: 'run',
+    label: '3. Run dgit',
+    command:
+      'docker run --rm \\\n' +
+      '  -p 8090:8090 \\\n' +
+      '  -v dgit-data:/data \\\n' +
+      '  -e PRIVATE_KEY="$PRIVATE_KEY" \\\n' +
+      '  dgit',
+  },
+]
+
 const fullDemoLines = demoSteps.flatMap<TerminalLine>((step) => [
   {
     kind: 'command',
@@ -116,7 +139,11 @@ function TerminalPrompt({
 function App() {
   const reduceMotion = prefersReducedMotion()
   const [isQuickStartOpen, setIsQuickStartOpen] = useState(false)
+  const [isPosterOpen, setIsPosterOpen] = useState(false)
+  const [isBrowserOpen, setIsBrowserOpen] = useState(false)
+  const [isReliabilityOpen, setIsReliabilityOpen] = useState(false)
   const [now, setNow] = useState(() => new Date())
+  const [copiedCommand, setCopiedCommand] = useState<string | null>(null)
   const [activeWindow, setActiveWindow] = useState<DesktopWindow>('terminal')
   const [windowPositions, setWindowPositions] = useState<Partial<Record<DesktopWindow, Point>>>(
     {},
@@ -132,6 +159,9 @@ function App() {
   const desktopStageRef = useRef<HTMLDivElement>(null)
   const terminalBodyRef = useRef<HTMLDivElement>(null)
   const quickStartClickRef = useRef(0)
+  const posterClickRef = useRef(0)
+  const browserClickRef = useRef(0)
+  const reliabilityClickRef = useRef(0)
   const dragRef = useRef<{
     id: DesktopWindow
     offsetX: number
@@ -144,9 +174,23 @@ function App() {
   const activeCommand = activeStep?.command ?? ''
   const typedCommand = activeCommand.slice(0, characterIndex)
   const isTextFileActive = isQuickStartOpen && activeWindow === 'quickStart'
-  const appName = isTextFileActive ? 'TextEdit' : 'Terminal'
+  const isPosterActive = isPosterOpen && activeWindow === 'poster'
+  const isBrowserActive =
+    (isBrowserOpen && activeWindow === 'browser') ||
+    (isReliabilityOpen && activeWindow === 'reliability')
+  const appName = isTextFileActive
+    ? 'TextEdit'
+    : isPosterActive
+      ? 'Preview'
+      : isBrowserActive
+        ? 'Brave Browser'
+        : 'Terminal'
   const menuItems = isTextFileActive
     ? ['File', 'Edit', 'Format', 'View', 'Window', 'Help']
+    : isPosterActive
+      ? ['File', 'Edit', 'View', 'Tools', 'Window', 'Help']
+      : isBrowserActive
+        ? ['File', 'Edit', 'View', 'History', 'Bookmarks', 'Window', 'Help']
     : ['Shell', 'Edit', 'View', 'Window', 'Help']
   const dateLabel = now.toLocaleDateString(undefined, {
     weekday: 'short',
@@ -163,6 +207,21 @@ function App() {
     setActiveWindow('quickStart')
   }
 
+  const openPoster = () => {
+    setIsPosterOpen(true)
+    setActiveWindow('poster')
+  }
+
+  const openBrowser = () => {
+    setIsBrowserOpen(true)
+    setActiveWindow('browser')
+  }
+
+  const openReliability = () => {
+    setIsReliabilityOpen(true)
+    setActiveWindow('reliability')
+  }
+
   const handleQuickStartPointerUp = () => {
     const clickedAt = Date.now()
 
@@ -173,6 +232,52 @@ function App() {
     }
 
     quickStartClickRef.current = clickedAt
+  }
+
+  const handlePosterPointerUp = () => {
+    const clickedAt = Date.now()
+
+    if (clickedAt - posterClickRef.current < 450) {
+      openPoster()
+      posterClickRef.current = 0
+      return
+    }
+
+    posterClickRef.current = clickedAt
+  }
+
+  const handleBrowserPointerUp = () => {
+    const clickedAt = Date.now()
+
+    if (clickedAt - browserClickRef.current < 450) {
+      openBrowser()
+      browserClickRef.current = 0
+      return
+    }
+
+    browserClickRef.current = clickedAt
+  }
+
+  const handleReliabilityPointerUp = () => {
+    const clickedAt = Date.now()
+
+    if (clickedAt - reliabilityClickRef.current < 450) {
+      openReliability()
+      reliabilityClickRef.current = 0
+      return
+    }
+
+    reliabilityClickRef.current = clickedAt
+  }
+
+  const copyCommand = async (id: string, command: string) => {
+    try {
+      await navigator.clipboard.writeText(command)
+      setCopiedCommand(id)
+      window.setTimeout(() => setCopiedCommand(null), 1200)
+    } catch (error) {
+      console.error('Failed to copy command', error)
+    }
   }
 
   const startDrag = (id: DesktopWindow, event: ReactPointerEvent<HTMLElement>) => {
@@ -354,6 +459,61 @@ function App() {
             <p>quick start</p>
           </button>
 
+          <button
+            className="desktop-image-icon"
+            onDoubleClick={openPoster}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter') {
+                openPoster()
+              }
+            }}
+            onPointerUp={handlePosterPointerUp}
+            type="button"
+          >
+            <span />
+            <p>dgit poster</p>
+          </button>
+
+          <button
+            className="desktop-browser-icon"
+            onDoubleClick={openBrowser}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter') {
+                openBrowser()
+              }
+            }}
+            onPointerUp={handleBrowserPointerUp}
+            type="button"
+          >
+            <span>
+              <img
+                alt=""
+                src="https://api.iconify.design/logos:brave.svg"
+              />
+            </span>
+            <p>github down 2026</p>
+          </button>
+
+          <button
+            className="desktop-browser-icon desktop-reliability-icon"
+            onDoubleClick={openReliability}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter') {
+                openReliability()
+              }
+            }}
+            onPointerUp={handleReliabilityPointerUp}
+            type="button"
+          >
+            <span>
+              <img
+                alt=""
+                src="https://api.iconify.design/logos:brave.svg"
+              />
+            </span>
+            <p>Github: Reliability Crisis</p>
+          </button>
+
           {isQuickStartOpen && (
             <article
               className={`quick-start-window ${
@@ -368,6 +528,7 @@ function App() {
                       left: windowPositions.quickStart.x,
                       right: 'auto',
                       top: windowPositions.quickStart.y,
+                      bottom: 'auto',
                     }
                   : {}),
                 zIndex: activeWindow === 'quickStart' ? 5 : 3,
@@ -392,25 +553,204 @@ function App() {
                 </div>
                 <strong>quick start.txt</strong>
               </div>
-              <pre>{`0. Clone the git repo
-   $ git clone git@github.com:zkfriendly/dgit.git
+              <div className="quick-start-content">
+                {quickStartCommands.slice(0, 1).map((item) => (
+                  <section className="quick-start-step" key={item.id}>
+                    <p>{item.label}</p>
+                    <div className="command-snippet">
+                      <pre>
+                        <code>$ {item.command}</code>
+                      </pre>
+                      <button
+                        aria-label={`Copy ${item.label} command`}
+                        className="copy-command-button"
+                        onClick={() => copyCommand(item.id, item.command)}
+                        type="button"
+                      >
+                        {copiedCommand === item.id ? 'copied' : 'copy'}
+                      </button>
+                    </div>
+                  </section>
+                ))}
 
-1. Install Docker
-   https://docs.docker.com/get-docker/
+                <section className="quick-start-step">
+                  <p>1. Install Docker</p>
+                  <a href="https://docs.docker.com/get-docker/">docs.docker.com/get-docker</a>
+                </section>
 
-2. Build the image
-   $ docker build -t dgit .
+                {quickStartCommands.slice(1).map((item) => (
+                  <section className="quick-start-step" key={item.id}>
+                    <p>{item.label}</p>
+                    <div className="command-snippet">
+                      <pre>
+                        <code>
+                          {item.command
+                            .split('\n')
+                            .map((line, index) => (index === 0 ? `$ ${line}` : `  ${line}`))
+                            .join('\n')}
+                        </code>
+                      </pre>
+                      <button
+                        aria-label={`Copy ${item.label} command`}
+                        className="copy-command-button"
+                        onClick={() => copyCommand(item.id, item.command)}
+                        type="button"
+                      >
+                        {copiedCommand === item.id ? 'copied' : 'copy'}
+                      </button>
+                    </div>
+                  </section>
+                ))}
 
-3. Run dgit
-   $ docker run --rm \\
-       -p 8090:8090 \\
-       -v dgit-data:/data \\
-       -e PRIVATE_KEY="$PRIVATE_KEY" \\
-       dgit
+                <p className="private-key-note">
+                  PRIVATE_KEY is the wallet private key used to claim new *.git.eth repo names
+                  on ENS.
+                </p>
+              </div>
+            </article>
+          )}
 
-PRIVATE_KEY is the wallet private key used to claim new *.git.eth
-repo names on ENS.
-`}</pre>
+          {isBrowserOpen && (
+            <article
+              className={`browser-window ${windowPositions.browser ? 'is-dragged' : ''}`}
+              aria-label="Brave browser showing GitHub availability article"
+              data-window
+              onPointerDown={() => setActiveWindow('browser')}
+              style={{
+                ...(windowPositions.browser
+                  ? {
+                      left: windowPositions.browser.x,
+                      right: 'auto',
+                      top: windowPositions.browser.y,
+                      bottom: 'auto',
+                    }
+                  : {}),
+                zIndex: activeWindow === 'browser' ? 5 : 3,
+              }}
+            >
+              <div
+                className="browser-titlebar window-drag-handle"
+                onPointerDown={(event) => startDrag('browser', event)}
+                onPointerMove={dragWindow}
+                onPointerUp={stopDrag}
+                onPointerCancel={stopDrag}
+              >
+                <div className="window-controls">
+                  <button
+                    aria-label="Close browser"
+                    onClick={() => setIsBrowserOpen(false)}
+                    onPointerDown={(event) => event.stopPropagation()}
+                    type="button"
+                  />
+                  <span />
+                  <span />
+                </div>
+                <div className="browser-url-bar">
+                  <span>https://github.blog/news-insights/company-news/an-update-on-github-availability/</span>
+                </div>
+                <strong>Brave</strong>
+              </div>
+              <div className="browser-content">
+                <img
+                  alt="GitHub availability article shown in Brave"
+                  src="/github-availability.png"
+                />
+              </div>
+            </article>
+          )}
+
+          {isReliabilityOpen && (
+            <article
+              className={`browser-window reliability-window ${
+                windowPositions.reliability ? 'is-dragged' : ''
+              }`}
+              aria-label="Brave browser showing GitHub reliability crisis article"
+              data-window
+              onPointerDown={() => setActiveWindow('reliability')}
+              style={{
+                ...(windowPositions.reliability
+                  ? {
+                      left: windowPositions.reliability.x,
+                      right: 'auto',
+                      top: windowPositions.reliability.y,
+                      bottom: 'auto',
+                    }
+                  : {}),
+                zIndex: activeWindow === 'reliability' ? 5 : 3,
+              }}
+            >
+              <div
+                className="browser-titlebar window-drag-handle"
+                onPointerDown={(event) => startDrag('reliability', event)}
+                onPointerMove={dragWindow}
+                onPointerUp={stopDrag}
+                onPointerCancel={stopDrag}
+              >
+                <div className="window-controls">
+                  <button
+                    aria-label="Close browser"
+                    onClick={() => setIsReliabilityOpen(false)}
+                    onPointerDown={(event) => event.stopPropagation()}
+                    type="button"
+                  />
+                  <span />
+                  <span />
+                </div>
+                <div className="browser-url-bar">
+                  <span>https://byteiota.com/ghostty-leaves-github-after-18-years-reliability-crisis/</span>
+                </div>
+                <strong>Brave</strong>
+              </div>
+              <div className="browser-content">
+                <img
+                  alt="GitHub reliability crisis article shown in Brave"
+                  src="/github-reliability-crisis.png"
+                />
+              </div>
+            </article>
+          )}
+
+          {isPosterOpen && (
+            <article
+              className={`poster-window ${windowPositions.poster ? 'is-dragged' : ''}`}
+              aria-label="dgit poster image preview"
+              data-window
+              onPointerDown={() => setActiveWindow('poster')}
+              style={{
+                ...(windowPositions.poster
+                  ? {
+                      left: windowPositions.poster.x,
+                      right: 'auto',
+                      top: windowPositions.poster.y,
+                    }
+                  : {}),
+                zIndex: activeWindow === 'poster' ? 5 : 3,
+              }}
+            >
+              <div
+                className="poster-titlebar window-drag-handle"
+                onPointerDown={(event) => startDrag('poster', event)}
+                onPointerMove={dragWindow}
+                onPointerUp={stopDrag}
+                onPointerCancel={stopDrag}
+              >
+                <div className="window-controls">
+                  <button
+                    aria-label="Close poster"
+                    onClick={() => setIsPosterOpen(false)}
+                    onPointerDown={(event) => event.stopPropagation()}
+                    type="button"
+                  />
+                  <span />
+                  <span />
+                </div>
+                <strong>cover_image_dgit.png</strong>
+              </div>
+              <img
+                alt="dgit decentralized git forge poster"
+                className="poster-preview-image"
+                src="/cover_image_dgit.png"
+              />
             </article>
           )}
 
@@ -462,6 +802,42 @@ repo names on ENS.
               )}
             </div>
           </div>
+
+          <div className="desktop-logo-mark" aria-label="dgit logo">
+            <img alt="" src="/logo_dgit.png" />
+            <p>dgit</p>
+          </div>
+
+          <aside className="protocol-badge" aria-label="AXL and ENS project note">
+            <span>AXL x ENS</span>
+            <strong>peer-routed repos</strong>
+            <p>names resolve onchain, git moves off-server</p>
+          </aside>
+
+          <nav className="desktop-dock" aria-label="Desktop dock">
+            {[
+              ['finder', 'Finder', 'https://api.iconify.design/streamline-logos:mac-finder-logo.svg'],
+              ['calendar', 'Calendar', 'https://api.iconify.design/fluent-emoji-flat:calendar.svg'],
+              ['vscode', 'VS Code', 'https://api.iconify.design/logos:visual-studio-code.svg'],
+              ['docker', 'Docker', 'https://api.iconify.design/logos:docker-icon.svg'],
+              [
+                'terminal',
+                'Terminal',
+                'https://api.iconify.design/material-symbols:terminal-rounded.svg?color=%23ffffff',
+              ],
+              ['browser', 'Browser', 'https://api.iconify.design/logos:brave.svg'],
+              ['notes', 'Notes', 'https://api.iconify.design/fluent-emoji-flat:spiral-notepad.svg'],
+              ['chat', 'ChatGPT', 'https://api.iconify.design/logos:openai-icon.svg'],
+              ['folder', 'Files', 'https://api.iconify.design/fluent-emoji-flat:open-file-folder.svg'],
+            ].map(([id, label, icon]) => (
+              <button className={`dock-app dock-app-${id}`} key={id} type="button">
+                <span>
+                  <img alt="" src={icon} />
+                </span>
+                <p>{label}</p>
+              </button>
+            ))}
+          </nav>
         </div>
       </section>
     </main>
