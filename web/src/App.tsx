@@ -57,39 +57,15 @@ const demoSteps: DemoStep[] = [
     cwd: 'myrepo',
     branch: 'main',
     command: 'git push origin HEAD:master',
-    output: [],
+    output: [
+      'Enumerating objects: 3, done.',
+      'Counting objects: 100% (3/3), done.',
+      'Writing objects: 100% (3/3), 214 bytes | 214.00 KiB/s, done.',
+      'Total 3 (delta 0), reused 0 (delta 0), pack-reused 0 (from 0)',
+      'To http://127.0.0.1:8090/myrepo@git.eth',
+      ' * [new branch]      HEAD -> master',
+    ],
   },
-]
-
-const runSteps = [
-  {
-    command: 'docker build -t dgit-home ./web',
-    label: 'Build the homepage image',
-  },
-  {
-    command: 'docker run --rm -p 8080:80 dgit-home',
-    label: 'Open the guide at http://localhost:8080',
-  },
-  {
-    command: 'cd node && zig build',
-    label: 'Build Haxy, the git smart HTTP server',
-  },
-  {
-    command: 'cd axl && make build && ./node -config node-config.json',
-    label: 'Start the AXL peer-to-peer transport',
-  },
-  {
-    command: 'python3 scripts/dgit_axl_bridge.py --listen 127.0.0.1:8090',
-    label: 'Bridge ENS repo names to Haxy over AXL',
-  },
-]
-
-const backgroundFlow = [
-  ['git push', 'Developer pushes to repo@git.eth'],
-  ['ENS', 'Resolve or claim the repo identity'],
-  ['AXL', 'Route bytes to the peer public key'],
-  ['Haxy', 'Serve git smart HTTP locally'],
-  ['git pull', 'Another peer fetches the repo'],
 ]
 
 const fullDemoLines = demoSteps.flatMap<TerminalLine>((step) => [
@@ -206,15 +182,22 @@ function App() {
         <div className="desktop-bar">
           <div className="desktop-brand">
             <span className="branch-dot" />
-            dgit demo
+            dgit
           </div>
           <div className="desktop-menu">
-            <span>File</span>
+            <span>Terminal</span>
+            <span>Shell</span>
             <span>Edit</span>
             <span>View</span>
-            <span>Terminal</span>
+            <span>Window</span>
+            <span>Help</span>
           </div>
-          <div className="desktop-clock">11:49 AM</div>
+          <div className="desktop-status">
+            <span>22°C</span>
+            <span>41%</span>
+            <span>Sun May 3</span>
+            <span>13:04</span>
+          </div>
         </div>
 
         <div className="desktop-stage" aria-label="Animated dgit desktop demo">
@@ -262,95 +245,6 @@ function App() {
             </div>
           </div>
         </div>
-
-        <div className="hero-intro">
-          <div className="hero-copy">
-            <p className="kicker">dgit homepage</p>
-            <h1>A small guide for running a decentralized git forge.</h1>
-            <p className="hero-text">
-              dgit connects Haxy, AXL, and ENS so a normal git remote can point
-              at a peer-owned repo name instead of a centralized forge.
-            </p>
-
-            <div className="hero-actions">
-              <a href="#run" className="button primary">
-                Run it
-              </a>
-              <a href="#flow" className="button secondary">
-                See the flow
-              </a>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="section" id="run">
-        <div className="section-heading">
-          <p className="kicker">quick start</p>
-          <h2>Clone, build, run.</h2>
-          <p>
-            The homepage is a standalone React app. Docker serves the production
-            build with nginx so anyone can download the repo and open the guide.
-          </p>
-        </div>
-
-        <div className="command-list">
-          {runSteps.map((step) => (
-            <article className="command-card" key={step.command}>
-              <p>{step.label}</p>
-              <code>{step.command}</code>
-            </article>
-          ))}
-        </div>
-      </section>
-
-      <section className="section split" id="flow">
-        <div className="section-heading">
-          <p className="kicker">background</p>
-          <h2>What happens after a git command?</h2>
-          <p>
-            The bridge keeps git familiar while the identity and transport move
-            behind the scenes.
-          </p>
-        </div>
-
-        <div className="flow">
-          {backgroundFlow.map(([title, body]) => (
-            <article className="flow-step" key={title}>
-              <div className="commit-node" />
-              <div>
-                <h3>{title}</h3>
-                <p>{body}</p>
-              </div>
-            </article>
-          ))}
-        </div>
-      </section>
-
-      <section className="section feature-grid">
-        <article>
-          <p className="kicker">Haxy</p>
-          <h3>Git server</h3>
-          <p>Accepts smart HTTP pushes and pulls against local repositories.</p>
-        </article>
-        <article>
-          <p className="kicker">AXL</p>
-          <h3>P2P routing</h3>
-          <p>Moves raw git traffic between peers through a local HTTP API.</p>
-        </article>
-        <article>
-          <p className="kicker">ENS</p>
-          <h3>Repo identity</h3>
-          <p>Maps repo-style names to the AXL public key that owns the forge.</p>
-        </article>
-      </section>
-
-      <section className="footer-cta">
-        <div>
-          <p className="kicker">next command</p>
-          <h2>git clone, then run the guide.</h2>
-        </div>
-        <code>npm run dev -- --host 0.0.0.0</code>
       </section>
     </main>
   )
