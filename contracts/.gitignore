@@ -1,0 +1,20 @@
+# Solidity build outputs and caches
+artifacts/
+cache/
+out/
+broadcast/
+
+# Solidity dependencies
+node_modules/
+lib/
+
+# Local configuration
+.env
+.env.*
+!.env.example
+
+# Coverage and gas reports
+coverage/
+coverage.json
+lcov.info
+gas-report.txt
