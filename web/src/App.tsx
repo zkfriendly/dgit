@@ -141,6 +141,11 @@ function App() {
   const activeStep = demoSteps[commandIndex]
   const activeCommand = activeStep?.command ?? ''
   const typedCommand = activeCommand.slice(0, characterIndex)
+  const isTextFileActive = isQuickStartOpen && activeWindow === 'quickStart'
+  const appName = isTextFileActive ? 'TextEdit' : 'Terminal'
+  const menuItems = isTextFileActive
+    ? ['File', 'Edit', 'Format', 'View', 'Window', 'Help']
+    : ['Shell', 'Edit', 'View', 'Window', 'Help']
 
   const openQuickStart = () => {
     setIsQuickStartOpen(true)
@@ -268,15 +273,12 @@ function App() {
         <div className="desktop-bar">
           <div className="desktop-brand">
             <span className="branch-dot" />
-            dgit
+            {appName}
           </div>
           <div className="desktop-menu">
-            <span>Terminal</span>
-            <span>Shell</span>
-            <span>Edit</span>
-            <span>View</span>
-            <span>Window</span>
-            <span>Help</span>
+            {menuItems.map((item) => (
+              <span key={item}>{item}</span>
+            ))}
           </div>
           <div className="desktop-status">
             <span>22°C</span>
@@ -300,24 +302,25 @@ function App() {
               <span />
               <p>notes</p>
             </div>
-            <button
-              className="desktop-file-icon"
-              onDoubleClick={openQuickStart}
-              onKeyDown={(event) => {
-                if (event.key === 'Enter') {
-                  openQuickStart()
-                }
-              }}
-              type="button"
-            >
-              <span />
-              <p>quick start</p>
-            </button>
             <div className={`folder-icon repo-folder ${showRepoFolder ? 'visible' : ''}`}>
               <span />
               <p>myrepo</p>
             </div>
           </div>
+
+          <button
+            className="desktop-file-icon"
+            onDoubleClick={openQuickStart}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter') {
+                openQuickStart()
+              }
+            }}
+            type="button"
+          >
+            <span />
+            <p>quick start</p>
+          </button>
 
           {isQuickStartOpen && (
             <article
@@ -326,6 +329,7 @@ function App() {
               }`}
               aria-label="quick start text file"
               data-window
+              onPointerDown={() => setActiveWindow('quickStart')}
               style={{
                 ...(windowPositions.quickStart
                   ? {
@@ -390,6 +394,7 @@ function App() {
             className={`demo-terminal ${windowPositions.terminal ? 'is-dragged' : ''}`}
             aria-label="Terminal demo"
             data-window
+            onPointerDown={() => setActiveWindow('terminal')}
             style={{
               ...(windowPositions.terminal
                 ? {
